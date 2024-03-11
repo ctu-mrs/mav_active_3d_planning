@@ -186,10 +186,10 @@
       <param name="publish_traversable" value="false" />         
     
       <remap from="odometry" to="/$(arg mav_name)/ground_truth/odometry" />
-      <remap from="command/trajectory" to="/$(arg mav_name)/command/trajectory" />
+      <remap from="command/trajectory" to="/command/trajectory" />
       <param name="verbose" value="$(arg verbose_planner)" />
       <param name="visualize" value="$(arg visualize)" />
-      <param name="log_performance" value="$(arg record_data)" />
+      <!-- <param name="log_performance" value="$(arg record_data)" /> -->
     
       <!-- Experiment dependent -->
       <param name="trajectory_evaluator/bounding_volume_args" value="/target_bounding_volume" />

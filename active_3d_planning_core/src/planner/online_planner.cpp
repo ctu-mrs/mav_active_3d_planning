@@ -185,13 +185,17 @@ void OnlinePlanner::loopIteration() {
 
   if (!min_new_value_reached_) {
     //  recursively check whether the minimum value is reached
+    std::cout << "CHECKING IF MIN VALUE REACHED" << std::endl;
     min_new_value_reached_ = checkMinNewValue(current_segment_);
+    std::cout << "DONE CHECKING IF MIN VAL REACHED" << std::endl;
   }
 
   // After finishing the current segment, execute the next one
   if (target_reached_) {
+    std::cout << "TARGET REACHED BABY!!!!!" << std::endl;
     if (new_segment_tries_ >= p_max_new_tries_ && p_max_new_tries_ > 0) {
       // Maximum tries reached: force next segment
+      std::cout << "MAXIMUM TRIES REACHED REQUEST TRAJ" << std::endl;
       requestNextTrajectory();
     } else {
       if (new_segment_tries_ < p_min_new_tries_) {
@@ -204,6 +208,7 @@ void OnlinePlanner::loopIteration() {
         return;  // check minimum value reached
       }
       // All requirements met
+      std::cout << "ALL REQUIREMENTS MET REQUEST TRAJ" << std::endl;
       requestNextTrajectory();
     }
   }
@@ -261,11 +266,13 @@ bool OnlinePlanner::requestNextTrajectory() {
   }
 
   // Visualize candidates
+  std::cout << "VISUALIZING CANDIDATES" << std::endl;
   std::vector<TrajectorySegment*> trajectories_to_vis;
   current_segment_->getTree(&trajectories_to_vis);
   trajectories_to_vis.erase(
       trajectories_to_vis.begin());  // remove current segment (root)
   if (p_visualize_) {
+    std::cout << "publishing visualization!" << std::endl;
     publishTrajectoryVisualization(trajectories_to_vis);
   }
   int num_trajectories = trajectories_to_vis.size();
@@ -311,11 +318,13 @@ bool OnlinePlanner::requestNextTrajectory() {
                                                     *current_segment_);
   current_segment_->trajectory = trajectory;
 
+  std::cout << "REQUESTING MOVEMENT" << std::endl;
   requestMovement(trajectory);
   target_position_ = trajectory.back().position_W;
   target_yaw_ = trajectory.back().getYaw();
   back_tracker_->segmentIsExecuted(*current_segment_);
 
+  std::cout << "target position" << target_position_.transpose() << std::endl;
   // Visualize
   if (p_log_performance_) {
     timer = std::clock();
@@ -330,6 +339,7 @@ bool OnlinePlanner::requestNextTrajectory() {
   }
 
   // Update tree
+  std::cout << "UPDATING TREE" << std::endl;
   // recursive tree pass from root to leaves
   updateGeneratorStep(current_segment_.get());
   if (p_log_performance_) {
@@ -368,6 +378,7 @@ bool OnlinePlanner::requestNextTrajectory() {
   }
 
   // Update tracking values
+  std::cout << "UPDATING TRACKING VALUES" << std::endl;
   new_segment_tries_ = 0;
   new_segments_ = 0;
   min_new_value_reached_ = p_min_new_value_ == 0.0;

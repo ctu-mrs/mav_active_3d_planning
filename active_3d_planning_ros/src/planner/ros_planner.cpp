@@ -33,6 +33,9 @@ RosPlanner::RosPlanner(const ::ros::NodeHandle& nh,
   get_cpu_time_srv_ = nh_private_.advertiseService(
       "get_cpu_time", &RosPlanner::cpuSrvCallback, this);
 
+  std::string traj_srv_name = "control_manager/trajectory_reference";
+  trajectory_srv_client_ = nh_.serviceClient<mrs_msgs::TrajectoryReferenceSrv>(traj_srv_name);
+
   // Finish
   ROS_INFO_STREAM(
       "\n******************** Initialized Planner ********************\n"
@@ -140,6 +143,7 @@ void RosPlanner::odomCallback(const nav_msgs::Odometry& msg) {
       if (p_replan_yaw_threshold_ <= 0 ||
           defaults::angleDifference(target_yaw_, yaw) <
               p_replan_yaw_threshold_) {
+        ROS_INFO("TARGET REACHED!");
         target_reached_ = true;
       }
     }
@@ -159,7 +163,26 @@ void RosPlanner::requestMovement(const EigenTrajectoryPointVector& trajectory) {
   for (int i = 0; i < n_points; ++i) {
     msgMultiDofJointTrajectoryPointFromEigen(trajectory[i], &msg->points[i]);
   }
+
+  mrs_msgs::TrajectoryReferenceSrv traj_srv = convert_traj_to_mrs_srv(*msg);
+  bool srv_status = trajectory_srv_client_.call(traj_srv);
+
+  if (srv_status) {
+    if (traj_srv.response.success) {
+      ROS_INFO("Trajectory sent to control manager");
+    } else {
+      ROS_ERROR("Failed to send trajectory to control manager %s", traj_srv.response.message.c_str());
+    }
+  } else {
+    ROS_ERROR("Failed to call mrs trajectory service");
+  }
+
   target_pub_.publish(msg);
+}
+
+void RosPlanner::publishTrajViz(const trajectory_msgs::MultiDOFJointTrajectory &trajectory) {
+ 
+  
 }
 
 void RosPlanner::publishVisualization(const VisualizationMarkers& markers) {
@@ -237,6 +260,45 @@ void RosPlanner::printWarning(const std::string& text) {
 }
 
 void RosPlanner::printError(const std::string& text) { ROS_ERROR_STREAM(text); }
+
+mrs_msgs::TrajectoryReferenceSrv RosPlanner::convert_traj_to_mrs_srv(const trajectory_msgs::MultiDOFJointTrajectory &trajectory)
+{
+    static int id = 0;
+    mrs_msgs::TrajectoryReferenceSrv traj_srv;
+    mrs_msgs::TrajectoryReference traj_msg;
+    traj_msg.header.frame_id = trajectory.header.frame_id;
+    traj_msg.header.stamp = trajectory.header.stamp;
+
+    traj_msg.use_heading = true;
+    traj_msg.fly_now = true;
+    traj_msg.input_id = id++;
+
+    if (trajectory.points.size() < 2){
+        ROS_WARN("Trajectory has less than 2 points, cannot convert to mrs_msgs::TrajectoryReference");
+        traj_msg.fly_now = false;
+        return traj_srv;
+    }else
+        traj_msg.dt = trajectory.points[1].time_from_start.toSec() - trajectory.points[0].time_from_start.toSec();
+
+    for (int i = 0; i < trajectory.points.size(); ++i)
+    {
+        mrs_msgs::Reference p;
+        p.position.x = trajectory.points[i].transforms[0].translation.x;
+        p.position.y = trajectory.points[i].transforms[0].translation.y;
+        p.position.z = trajectory.points[i].transforms[0].translation.z;
+
+        // get yaw from MULTI DOF quaternion
+        p.heading = tf::getYaw(trajectory.points[i].transforms[0].rotation);
+        ROS_INFO("Yaw %d: %f", i, p.heading);
+        // p.heading = 0.0;
+
+        traj_msg.points.push_back(p);
+    }
+
+    traj_srv.request.trajectory = traj_msg;
+
+    return traj_srv;
+}
 
 }  // namespace ros
 }  // namespace active_3d_planning

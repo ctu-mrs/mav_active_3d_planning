@@ -23,9 +23,13 @@ bool RecheckCollision::updateSegment(TrajectorySegment* segment) {
   for (const EigenTrajectoryPoint& point : segment->trajectory) {
     if (!(planner_.getTrajectoryGenerator().checkTraversable(
             point.position_W))) {
+      std::cout << "RecheckCollision: Collision detected at " << point.position_W
+                << std::endl;
       return false;
     }
   }
+  std::cout << "RecheckCollision: No collision detected at " << segment->trajectory.back().position_W
+            << std::endl;
   return true;
 }
 

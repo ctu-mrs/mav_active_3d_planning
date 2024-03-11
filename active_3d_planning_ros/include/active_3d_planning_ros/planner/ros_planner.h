@@ -14,6 +14,8 @@
 #include <trajectory_msgs/MultiDOFJointTrajectory.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <mrs_msgs/TrajectoryReferenceSrv.h>
+
 #include "active_3d_planning_core/planner/online_planner.h"
 
 namespace active_3d_planning {
@@ -60,6 +62,7 @@ class RosPlanner : public OnlinePlanner {
   ::ros::Publisher trajectory_vis_pub_;
   ::ros::ServiceServer run_srv_;
   ::ros::ServiceServer get_cpu_time_srv_;
+  ::ros::ServiceClient trajectory_srv_client_;
 
   // variables
   ::ros::Time ros_timing_;      // track simulated time
@@ -80,6 +83,11 @@ class RosPlanner : public OnlinePlanner {
   void requestMovement(const EigenTrajectoryPointVector& trajectory) override;
 
   void setupFromParamMap(Module::ParamMap* param_map) override;
+
+
+  mrs_msgs::TrajectoryReferenceSrv convert_traj_to_mrs_srv(const trajectory_msgs::MultiDOFJointTrajectory &trajectory);
+
+  void publishTrajViz(const trajectory_msgs::MultiDOFJointTrajectory &trajectory);
 };
 
 }  // namespace ros
